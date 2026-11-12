@@ -182,6 +182,22 @@ try {
   await a.waitForSelector('.status-tabs');
   check('27 excluir remove o livro', mock.db.books.size === 3 && (await a.locator('#grid .book:has-text("O Hobbit")').count()) === 0);
 
+  // Releitura: volta para "Lendo" do zero, sem apagar as páginas já lidas no mês.
+  await a.click('#st-concluido'); await a.waitForSelector('#grid');
+  await a.click('#grid .book:has-text("Dom Casmurro")');
+  await a.click('#reread');
+  await a.waitForFunction(() => document.querySelector('#pctNow')?.textContent === '0%');
+  const reread = [...mock.db.books.values()].find((b) => b.title.startsWith('Dom Casmurro'));
+  const hoje = new Date(); const hojeISO = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, '0')}-${String(hoje.getDate()).padStart(2, '0')}`;
+  check('27a ler de novo começa da página 0, com início hoje', reread.status === 'lendo' && reread.current_page === 0 && reread.started_on === hojeISO && reread.finished_on === null, JSON.stringify({ p: reread.current_page, s: reread.started_on }));
+  await a.click('#plus10');
+  await a.waitForFunction(() => document.querySelector('#pctNow')?.textContent === '4%');
+  await a.click('#tab-inicio'); await a.waitForSelector('#monthPages');
+  check('27b páginas da releitura somam às do mês (256 + 10)', (await txt(a, '#monthPages')) === '266', await txt(a, '#monthPages'));
+  await a.click('.now:has-text("Dom Casmurro")');
+  await a.click('#finish');
+  await a.waitForFunction(() => document.querySelector('#headline')?.textContent.toLowerCase().startsWith('concluído em'));
+
   // ---------- 6. Perfil, nome e senha ----------
   await a.click('#tab-perfil');
   await a.waitForSelector('.figures');

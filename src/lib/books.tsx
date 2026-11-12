@@ -22,10 +22,16 @@ interface BooksState {
 const BooksCtx = createContext<BooksState | null>(null);
 
 /** Ajustes que acompanham a troca de status, iguais na tela de edição e nos atalhos. */
-export function statusPatch(book: Pick<Book, 'started_on' | 'finished_on' | 'total_pages' | 'current_page'>, status: Status): Partial<BookInput> {
+export function statusPatch(book: Pick<Book, 'status' | 'started_on' | 'finished_on' | 'total_pages' | 'current_page'>, status: Status): Partial<BookInput> {
   const patch: Partial<BookInput> = { status };
   if (status === 'lendo') {
-    if (!book.started_on) patch.started_on = todayISO();
+    if (book.status === 'concluido') {
+      // Releitura: começa do zero, com a data de hoje.
+      patch.started_on = todayISO();
+      patch.current_page = 0;
+    } else if (!book.started_on) {
+      patch.started_on = todayISO();
+    }
     patch.finished_on = null;
   }
   if (status === 'concluido') {
@@ -36,6 +42,7 @@ export function statusPatch(book: Pick<Book, 'started_on' | 'finished_on' | 'tot
     patch.started_on = null;
     patch.finished_on = null;
     patch.current_page = 0;
+    patch.rating = null;
   }
   return patch;
 }
@@ -68,6 +75,13 @@ export function BooksProvider({ userId, children }: { userId: string; children: 
   }, [loadProgress]);
 
   useEffect(() => { void reload(); }, [reload, userId]);
+
+  // Ao voltar para o app (por exemplo, depois da virada do mês), recarrega o histórico do mês atual.
+  useEffect(() => {
+    const onVisible = () => { if (document.visibilityState === 'visible') void loadProgress(); };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => document.removeEventListener('visibilitychange', onVisible);
+  }, [loadProgress]);
 
   const add = useCallback(async (input: BookInput) => {
     const { data, error: e } = await supabase.from('books').insert(input).select().single();
@@ -104,6 +118,7 @@ export function BooksProvider({ userId, children }: { userId: string; children: 
 
   const monthPages = useMemo(() => {
     // Soma por livro para que uma correção para trás não vire "páginas negativas".
+    // Recomeços (voltar para "Quero ler", reler) não entram no histórico: o banco ignora.
     const perBook = new Map<string, number>();
     for (const r of progress) perBook.set(r.book_id, (perBook.get(r.book_id) ?? 0) + (r.to_page - r.from_page));
     let total = 0;

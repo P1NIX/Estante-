@@ -34,6 +34,9 @@ export function createMock() {
     if (!(b.current_page >= 0) || (b.total_pages != null && b.current_page > b.total_pages)) return '23514';
     if (b.started_on && b.finished_on && b.started_on > b.finished_on) return '23514';
     if (b.rating != null && !(b.rating >= 1 && b.rating <= 5)) return '23514';
+    // Mesmo check "status_coerente" da migração 0002.
+    if (b.status === 'quero_ler' && (b.current_page !== 0 || b.started_on || b.finished_on || b.rating != null)) return '23514';
+    if (b.status === 'lendo' && b.finished_on) return '23514';
     return null;
   }
 
@@ -122,7 +125,10 @@ export function createMock() {
           const next = { ...own, ...data, id: own.id, user_id: own.user_id, updated_at: now() };
           const bad = checkBook(next);
           if (bad) return pgErr(400, bad, 'check constraint');
-          if (next.current_page !== own.current_page) db.progress.push({ user_id: uid, book_id: own.id, from_page: own.current_page, to_page: next.current_page, logged_at: now() });
+          // Mesmas regras do gatilho log_reading_progress (migração 0002): recomeços e "fila -> concluído" não entram.
+          const statusChanged = next.status !== own.status;
+          const skip = statusChanged && (next.current_page === 0 || (own.status === 'quero_ler' && next.status === 'concluido'));
+          if (next.current_page !== own.current_page && !skip) db.progress.push({ user_id: uid, book_id: own.id, from_page: own.current_page, to_page: next.current_page, logged_at: now() });
           db.books.set(own.id, next);
           return one([next]);
         }

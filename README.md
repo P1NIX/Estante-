@@ -41,7 +41,9 @@ manual da estante, recomendações (dependem de uma fonte de dados real).
 ### 1. Criar o projeto no Supabase
 
 1. Crie uma conta e um projeto em <https://supabase.com>.
-2. No painel, abra **SQL Editor**, cole o conteúdo de `supabase/migrations/0001_base.sql` e execute.
+2. No painel, abra **SQL Editor** e execute, nesta ordem, o conteúdo de `supabase/migrations/0001_base.sql`
+   e de `supabase/migrations/0002_integridade.sql`. Se você já tinha rodado a 0001, rode só a 0002:
+   ela ajusta os dados que já existem.
 3. Em **Authentication > URL Configuration**:
    - **Site URL:** o endereço onde o app vai rodar (`http://localhost:5173` para testar no computador;
      depois troque pelo endereço publicado).
@@ -96,8 +98,8 @@ Para um backup manual: `supabase db dump --data-only > backup.sql` (com a CLI do
 
 ```
 npm run build        # confere os tipos e compila
-npm run test:db      # aplica as migrações num PostgreSQL local descartável e testa o RLS (18 verificações)
-npm run test:e2e     # abre o app num navegador e percorre 44 verificações de tela
+npm run test:db      # aplica as migrações num PostgreSQL local descartável e testa integridade e RLS (32 verificações)
+npm run test:e2e     # abre o app num navegador e percorre 46 verificações de tela
 ```
 
 - `test:db` precisa do PostgreSQL 15+ instalado na máquina. Ele cria um esqueleto mínimo do schema
@@ -118,6 +120,7 @@ npm run test:e2e     # abre o app num navegador e percorre 44 verificações de 
 
 ```
 supabase/migrations/0001_base.sql   tabelas, RLS e gatilhos
+supabase/migrations/0002_integridade.sql  status coerente, datas e dono controlados pelo banco, perfis que faltavam
 src/lib/supabase.ts                 cliente único
 src/lib/auth.tsx                    sessão, cadastro, login, recuperação de senha
 src/lib/books.tsx                   leitura e escrita dos livros, páginas do mês
@@ -132,4 +135,8 @@ tests/                              testes do banco e das telas
 - `books.current_page` nunca passa de `total_pages` e as datas ficam em ordem: o banco recusa.
 - O histórico `reading_progress` é escrito por um gatilho quando `current_page` muda. O app só lê.
   Assim "páginas lidas no mês" não pode ser forjado nem ficar inconsistente com os livros.
+  Recomeços (voltar para "Quero ler", começar uma releitura) e concluir direto da fila não entram
+  no histórico, para não apagar nem inventar páginas lidas.
+- O status manda: "Quero ler" não tem página, datas nem nota; "Lendo" não tem data de término.
+- `created_at`, `updated_at` e o dono do livro são definidos pelo banco; o app não consegue alterá-los.
 - Excluir a conta em **Authentication > Users** apaga perfil, livros e histórico em cascata.

@@ -25,7 +25,7 @@ export function ProfilePage() {
 
   async function submitName(e: FormEvent) {
     e.preventDefault();
-    const n = name.trim().slice(0, 40);
+    const n = name.trim().slice(0, 40).trim();
     if (n.length < 2) return toast('Digite um nome com pelo menos 2 letras.');
     setBusy('name');
     try { await saveName(n); toast('Nome atualizado.'); }

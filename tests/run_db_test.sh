@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Sobe um PostgreSQL descartável, aplica as migrações e roda tests/rls_test.sql.
+# Sobe um PostgreSQL descartável, aplica as migrações e roda tests/integrity_test.sql e tests/rls_test.sql.
 # Uso: bash tests/run_db_test.sh   (precisa do PostgreSQL 15+ instalado)
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -30,5 +30,12 @@ alter default privileges in schema public grant all on tables to authenticated;
 alter default privileges in schema public grant all on sequences to authenticated;
 SQL
 
-for f in "$ROOT"/supabase/migrations/*.sql; do $P -f "$f"; done
-$P -f "$ROOT/tests/rls_test.sql" 2>&1 | sed -e 's/^psql:[^ ]* NOTICE:  //' | grep -v '^$' | grep -v '^[0-9a-f-]\{36\}$'
+# Antes de cada migração, um arquivo opcional tests/fixtures/antes_<migração>.sql simula dados que já existiam.
+for f in "$ROOT"/supabase/migrations/*.sql; do
+  fx="$ROOT/tests/fixtures/antes_$(basename "$f")"
+  [ -f "$fx" ] && $P -f "$fx"
+  $P -f "$f"
+done
+for t in "$ROOT"/tests/integrity_test.sql "$ROOT"/tests/rls_test.sql; do
+  $P -f "$t" 2>&1 | sed -e 's/^psql:[^ ]* NOTICE:  //' | grep -v '^$' | grep -v '^[0-9a-f-]\{36\}$'
+done

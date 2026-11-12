@@ -9,7 +9,7 @@ export function SetupPage() {
         <h1 className="panel-title">Falta conectar o banco de dados</h1>
         <p>O app precisa de um projeto Supabase para criar contas e guardar os livros. Sem ele, nada é salvo.</p>
         <ol className="steps">
-          <li>Crie um projeto em supabase.com e rode o arquivo <code>supabase/migrations/0001_base.sql</code> no SQL Editor.</li>
+          <li>Crie um projeto em supabase.com e rode os arquivos de <code>supabase/migrations/</code> (0001 e depois 0002) no SQL Editor.</li>
           <li>Copie <code>.env.example</code> para <code>.env.local</code> e preencha <code>VITE_SUPABASE_URL</code> e <code>VITE_SUPABASE_ANON_KEY</code>.</li>
           <li>Reinicie o servidor (<code>npm run dev</code>) ou publique de novo.</li>
         </ol>

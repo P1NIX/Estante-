@@ -47,6 +47,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const uid = session?.user.id ?? null;
   useEffect(() => {
+    setProfile(null); // não mostrar o nome de outra conta enquanto o perfil novo carrega
     if (!uid) return;
     let alive = true;
     supabase.from('profiles').select('id, display_name').eq('id', uid).maybeSingle().then(({ data }) => {

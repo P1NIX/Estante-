@@ -50,7 +50,7 @@ function BookForm({ editing }: { editing?: Book }) {
   function pickStatus(s: Status) {
     setStatus(s);
     // Mesmos ajustes automáticos dos atalhos da página do livro.
-    const p = statusPatch({ started_on: started || null, finished_on: finished || null, total_pages: toInt(total) || null, current_page: toInt(page) || 0 }, s);
+    const p = statusPatch({ status, started_on: started || null, finished_on: finished || null, total_pages: toInt(total) || null, current_page: toInt(page) || 0 }, s);
     if ('started_on' in p) setStarted(p.started_on ?? '');
     if ('finished_on' in p) setFinished(p.finished_on ?? '');
     if ('current_page' in p) setPage(String(p.current_page));
